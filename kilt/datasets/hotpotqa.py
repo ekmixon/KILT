@@ -47,7 +47,7 @@ class HotpotQADataset(Dataset):
             all_data = json.loads(line)
 
         n = len(all_data)
-        print("{} examples in the dataset".format(n))
+        print(f"{n} examples in the dataset")
         return utils.chunk_it(all_data, num_chunks)
 
     def process_chunk(self, chunk, ks, chunk_id=-1):
@@ -90,11 +90,7 @@ class HotpotQADataset(Dataset):
                 try:
                     text = self.hotpotqa_ks[title]["text"][sent_id]
                 except IndexError as e:
-                    print(
-                        "\nIndexError: {}\ntitle:{}\nsent_id:{}\n".format(
-                            e, title, sent_id
-                        )
-                    )
+                    print(f"\nIndexError: {e}\ntitle:{title}\nsent_id:{sent_id}\n")
 
                 if self.get_only_original_evidence:
                     kilt_record_provenance.append(
@@ -192,6 +188,5 @@ class HotpotQADataset(Dataset):
         )
         print(msg)
 
-        f = open(self.log_file, "w+")
-        f.write(msg)
-        f.close()
+        with open(self.log_file, "w+") as f:
+            f.write(msg)

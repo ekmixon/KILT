@@ -37,10 +37,7 @@ class Seq2seqTransformer(BaseTransformer):
         self.source_length = -1
         self.target_length = -1
 
-        special_tokens = []
-
-        for i in range(0, 101):
-            special_tokens.append('<extra_id_' + str(i) + '>')
+        special_tokens = [f'<extra_id_{str(i)}>' for i in range(101)]
 
         special_tokens.extend(['[START_ENT]', '[END_ENT]', 'Question Answering:', 'Entity Linking:',
                                'Fact Checking:', 'Dialogue:', 'Relation Extraction:', '[SEP]'])  #
@@ -87,9 +84,7 @@ class Seq2seqTransformer(BaseTransformer):
 
         outputs = self(source_ids, attention_mask=source_mask, lm_labels=lm_labels, )
 
-        loss = outputs[0]
-
-        return loss
+        return outputs[0]
 
     def training_step(self, batch, batch_idx):
         loss = self._step(batch)
@@ -142,7 +137,7 @@ class Seq2seqTransformer(BaseTransformer):
                 em = em + 1
         if em > self.em:
             self.em = em
-            self.trainer.save_checkpoint(self.output_dir + '/' + "best_em.ckpt")
+            self.trainer.save_checkpoint(f'{self.output_dir}/best_em.ckpt')
             seq2seq_to_kilt(set(ids), set(sources), set(preds), self.hparams.output_dir,
                             self.hparams.dataset, 'dev')
         return {"avg_val_loss": avg_loss, "log": tensorboard_logs, "EM": em}
@@ -202,11 +197,19 @@ class Seq2seqTransformer(BaseTransformer):
         return {"source_ids": source_ids, "source_mask": source_mask, "target_ids": y, "ids": ids}
 
     def get_dataloader(self, type_path: str, batch_size: int, shuffle: bool = False) -> DataLoader:
-        datasets = []
-        for d in self.dataset_list:
-            datasets.append(
-                KiltDataset(self.tokenizer, self.data_dir, d, type_path, self.source_length, self.target_length,
-                            self.output_dir))
+        datasets = [
+            KiltDataset(
+                self.tokenizer,
+                self.data_dir,
+                d,
+                type_path,
+                self.source_length,
+                self.target_length,
+                self.output_dir,
+            )
+            for d in self.dataset_list
+        ]
+
         if type_path == 'dev':
             for x in datasets:
                 self.devsets.update(x.id_targets)

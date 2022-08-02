@@ -29,17 +29,13 @@ def convert_to_KILT_format(
     data = []
     for q in questions:
 
-        if id_filter_positive:
-            if id_filter_positive not in q["id"]:
-                continue
+        if id_filter_positive and id_filter_positive not in q["id"]:
+            continue
 
-        if id_filter_negative:
-            if id_filter_negative in q["id"]:
-                continue
+        if id_filter_negative and id_filter_negative in q["id"]:
+            continue
 
-        page = ks.get_page_from_url(q["Wikipedia_URL"])
-
-        if page:
+        if page := ks.get_page_from_url(q["Wikipedia_URL"]):
             left_context = q["left_context"].copy()
             right_context = q["right_context"].copy()
 
@@ -88,7 +84,7 @@ def convert_to_KILT_format(
                 tokens = input_text.split()
 
             datapoint = {
-                "id": str(uuid.uuid4()) + "_" + str(q["id"]),
+                "id": f"{str(uuid.uuid4())}_" + str(q["id"]),
                 "input": input_text,
                 "output": [
                     {
@@ -106,8 +102,9 @@ def convert_to_KILT_format(
                     "left_context": " ".join(q["left_context"]).strip(),
                     "mention": text_mention,
                     "right_context": " ".join(q["right_context"]).strip(),
-                },  # dataset/task specific
+                },
             }
+
             data.append(datapoint)
     return data
 
@@ -208,13 +205,14 @@ class EntityLinkingDataset(Dataset):
                     elif B_I == "B":
 
                         q = {
-                            "id": "{}:{}".format(doc_id, question_i),
+                            "id": f"{doc_id}:{question_i}",
                             "mention": mention,
                             "Wikipedia_URL": Wikipedia_URL,
                             "Wikipedia_ID": Wikipedia_ID,
                             "left_context": left_context.copy(),
                             "right_context": [],
                         }
+
                         document_questions.append(q)
                         open_entity = True
                         question_i += 1
@@ -223,10 +221,9 @@ class EntityLinkingDataset(Dataset):
                         print("Invalid B_I {}", format(B_I))
                         sys.exit(-1)
 
-                    # print(token,B_I,mention,Wikipedia_URL,Wikipedia_ID)
-                else:
-                    if open_entity:
-                        open_entity = False
+                                # print(token,B_I,mention,Wikipedia_URL,Wikipedia_ID)
+                elif open_entity:
+                    open_entity = False
 
                 left_context.append(token)
 

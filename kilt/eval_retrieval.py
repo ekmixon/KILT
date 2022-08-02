@@ -142,27 +142,19 @@ def get_rank(guess_item, gold_item, k, rank_keys, verbose=False):
 # 1. Precision computation
 def _precision_at_k(rank, k):
 
-    # precision @ k
-    p = rank[:k].count(True) / k
-
-    return p
+    return rank[:k].count(True) / k
 
 
 # 2. Recall computation
 def _recall_at_k(rank, num_distinct_evidence_sets, k):
 
-    r = rank[:k].count(True) / num_distinct_evidence_sets
-
-    return r
+    return rank[:k].count(True) / num_distinct_evidence_sets
 
 
 # 3. Success rate computation
 def _success_rate_at_k(rank, k):
 
-    # success rate @ k
-    p = int(True in rank[:k])
-
-    return p
+    return int(True in rank[:k])
 
 
 # 4. Answer in context computation
@@ -172,7 +164,7 @@ def _answer_in_context_at_k(guess_item, gold_item, k):
 
     if "provenance" in guess_item["output"][0]:
         provenance = guess_item["output"][0]["provenance"]
-        for i in range(0, min(k, len(provenance))):
+        for i in range(min(k, len(provenance))):
             if "text" in provenance[i]:
                 normalized_text = eval_downstream.normalize_answer(
                     provenance[i]["text"]
@@ -186,14 +178,9 @@ def _answer_in_context_at_k(guess_item, gold_item, k):
 def _computeRprec(guess_ids, gold_ids):
 
     R = len(gold_ids)
-    num = 0
+    num = sum(str(prediction).strip() in gold_ids for prediction in guess_ids[:R])
 
-    for prediction in guess_ids[:R]:
-        if str(prediction).strip() in gold_ids:
-            num += 1
-
-    Rprec = num / R if R > 0 else 0
-    return Rprec
+    return num / R if R > 0 else 0
 
 
 # R-precision https://link.springer.com/referenceworkentry/10.1007%2F978-0-387-39940-9_486
@@ -210,10 +197,10 @@ def rprecision(guess_item, gold_item, rank_keys):
 def get_ranking_metrics(guess_item, gold_item, ks, rank_keys):
 
     Rprec = 0
-    P_at_k = {"precision@{}".format(k): 0 for k in sorted(ks) if k > 0}
-    R_at_k = {"recall@{}".format(k): 0 for k in sorted(ks) if k > 1}
-    S_at_k = {"success_rate@{}".format(k): 0 for k in sorted(ks) if k > 1}
-    A_at_k = {"answer_in_context@{}".format(k): 0 for k in sorted(ks) if k > 0}
+    P_at_k = {f"precision@{k}": 0 for k in sorted(ks) if k > 0}
+    R_at_k = {f"recall@{k}": 0 for k in sorted(ks) if k > 1}
+    S_at_k = {f"success_rate@{k}": 0 for k in sorted(ks) if k > 1}
+    A_at_k = {f"answer_in_context@{k}": 0 for k in sorted(ks) if k > 0}
 
     assert (
         "output" in guess_item and len(guess_item["output"]) == 1
@@ -230,20 +217,22 @@ def get_ranking_metrics(guess_item, gold_item, ks, rank_keys):
         if num_distinct_evidence_sets > 0:
 
             # 1. precision
-            P_at_k["precision@{}".format(k)] = _precision_at_k(rank, k)
+            P_at_k[f"precision@{k}"] = _precision_at_k(rank, k)
 
             # 2. recall
-            R_at_k["recall@{}".format(k)] = _recall_at_k(
+            R_at_k[f"recall@{k}"] = _recall_at_k(
                 rank, num_distinct_evidence_sets, k
             )
 
+
             # 3. success rate
-            S_at_k["success_rate@{}".format(k)] = _success_rate_at_k(rank, k)
+            S_at_k[f"success_rate@{k}"] = _success_rate_at_k(rank, k)
 
         # 4. answer in context
-        A_at_k["answer_in_context@{}".format(k)] = _answer_in_context_at_k(
+        A_at_k[f"answer_in_context@{k}"] = _answer_in_context_at_k(
             guess_item, gold_item, k
         )
+
 
     return {"Rprec": Rprec, **P_at_k, **R_at_k, **S_at_k, **A_at_k}
 
@@ -256,15 +245,16 @@ def compute(gold_dataset, guess_dataset, ks, rank_keys):
     result["Rprec"] = 0.0
     for k in ks:
         if k > 0:
-            result["precision@{}".format(k)] = 0.0
-            result["answer_in_context@{}".format(k)] = 0.0
+            result[f"precision@{k}"] = 0.0
+            result[f"answer_in_context@{k}"] = 0.0
         if k > 1:
-            result["recall@{}".format(k)] = 0.0
-            result["success_rate@{}".format(k)] = 0.0
+            result[f"recall@{k}"] = 0.0
+            result[f"success_rate@{k}"] = 0.0
 
     assert len(guess_dataset) == len(
         gold_dataset
-    ), "different size gold: {} guess: {}".format(len(guess_dataset), len(gold_dataset))
+    ), f"different size gold: {len(guess_dataset)} guess: {len(gold_dataset)}"
+
 
     for gold, guess in zip(guess_dataset, gold_dataset):
         assert (
@@ -276,37 +266,28 @@ def compute(gold_dataset, guess_dataset, ks, rank_keys):
         result["Rprec"] += ranking_metrics["Rprec"]
         for k in ks:
             if k > 0:
-                result["precision@{}".format(k)] += ranking_metrics[
-                    "precision@{}".format(k)
-                ]
-                result["answer_in_context@{}".format(k)] += ranking_metrics[
-                    "answer_in_context@{}".format(k)
-                ]
+                result[f"precision@{k}"] += ranking_metrics[f"precision@{k}"]
+                result[f"answer_in_context@{k}"] += ranking_metrics[f"answer_in_context@{k}"]
             if k > 1:
-                result["recall@{}".format(k)] += ranking_metrics["recall@{}".format(k)]
-                result["success_rate@{}".format(k)] += ranking_metrics[
-                    "success_rate@{}".format(k)
-                ]
+                result[f"recall@{k}"] += ranking_metrics[f"recall@{k}"]
+                result[f"success_rate@{k}"] += ranking_metrics[f"success_rate@{k}"]
 
     if len(guess_dataset) > 0:
         result["Rprec"] /= len(guess_dataset)
         for k in ks:
             if k > 0:
-                result["precision@{}".format(k)] /= len(guess_dataset)
-                result["answer_in_context@{}".format(k)] /= len(guess_dataset)
+                result[f"precision@{k}"] /= len(guess_dataset)
+                result[f"answer_in_context@{k}"] /= len(guess_dataset)
             if k > 1:
-                result["recall@{}".format(k)] /= len(guess_dataset)
-                result["success_rate@{}".format(k)] /= len(guess_dataset)
+                result[f"recall@{k}"] /= len(guess_dataset)
+                result[f"success_rate@{k}"] /= len(guess_dataset)
 
     return result
 
 def filter_answers(guess):
     new_guess = []
     for x in guess:
-        new_o = []
-        for o in x["output"]:
-            if "provenance" in o:
-                new_o.append(o)
+        new_o = [o for o in x["output"] if "provenance" in o]
         assert (
             len(new_o) == 1
         ), f"guess should provide exactly one output with provenance for {x['id']}"
@@ -357,6 +338,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.ks = [int(k) for k in args.ks.split(",")]
-    args.rank_keys = [rank_key for rank_key in args.rank_keys.split(",")]
+    args.rank_keys = list(args.rank_keys.split(","))
 
     evaluate(args.gold, args.guess, args.ks, args.rank_keys)

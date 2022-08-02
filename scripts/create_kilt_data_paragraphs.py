@@ -62,11 +62,7 @@ def run_thread(args):
     rank = args["rank"]
     chunk_size = args["chunk_size"]
 
-    if id == 0 and rank == 0:
-        iter_ = tqdm(documents)
-    else:
-        iter_ = documents
-
+    iter_ = tqdm(documents) if id == 0 and rank == 0 else documents
     # initialization
     output = []
 
@@ -134,24 +130,22 @@ def run_thread(args):
 
 def store_chunks(documents, num_threads, folder):
     for id, chunk in enumerate(utils.chunk_it(documents, num_threads)):
-        out_filename = os.path.join(folder, "documents_{}.p".format(id))
+        out_filename = os.path.join(folder, f"documents_{id}.p")
         pickle.dump(chunk, open(out_filename, "wb"))
 
 
 def load_chunk(id, folder):
-    in_filename = os.path.join(folder, "documents_{}.p".format(id))
+    in_filename = os.path.join(folder, f"documents_{id}.p")
     return pickle.load(open(in_filename, "rb"))
 
 
 def load_all_documents_from_ks(cursor, steps, n):
     documents = []
-    j = 0
-    for document in cursor:
+    for j, document in enumerate(cursor):
         if j % steps == 0:
-            sys.stdout.write("{}/{} \r".format(j, n))
+            sys.stdout.write(f"{j}/{n} \r")
             sys.stdout.flush()
         documents.append(document)
-        j += 1
     return documents
 
 
@@ -170,7 +164,7 @@ def preprocess_data(num_threads, folder):
 
 def main(rank, num_threads, folder, chunk_size):
 
-    print("loading chunk {}".format(rank), flush=True)
+    print(f"loading chunk {rank}", flush=True)
     documents = load_chunk(rank, folder)
 
     arguments = [
@@ -184,43 +178,37 @@ def main(rank, num_threads, folder, chunk_size):
         for id, chunk in enumerate(utils.chunk_it(documents, num_threads))
     ]
 
-    print("starting {} threads in {}".format(num_threads, rank))
+    print(f"starting {num_threads} threads in {rank}")
     pool = ThreadPool(num_threads)
     results = pool.map(run_thread, arguments)
 
-    f = open(os.path.join(folder, "kilt_{}.jsonl".format(rank)), "w+",)
-
-    i = 1
-    for output in results:
-        for msg in output:
-            f.write("{}\t{}\n".format(i, json.dumps(msg)))
-            i += 1
-    f.close()
+    with open(os.path.join(folder, f"kilt_{rank}.jsonl"), "w+") as f:
+        i = 1
+        for output in results:
+            for msg in output:
+                f.write(f"{i}\t{json.dumps(msg)}\n")
+                i += 1
     pool.terminate()
     pool.join()
-    print("done {}".format(rank))
+    print(f"done {rank}")
 
 
 def merge_files(num_threads, folder):
 
-    f = open(os.path.join(folder, "kilt.jsonl"), "w+")
-    i = 1
-    for rank in trange(num_threads):
-        filename = os.path.join(folder, "kilt_{}.jsonl".format(rank))
-        print("reading {}".format(filename), flush=True)
-        with open(filename, "r") as fin:
-            lines = fin.readlines()
-            for line in tqdm(lines):
-                elements = line.split("\t")
-                if len(elements) != 2:
-                    print(
-                        "ERROR: len(elements)!=2 -> {}".format(len(elements)),
-                        flush=True,
-                    )
-                else:
-                    f.write("{}\t{}\n".format(i, elements[1].strip()))
-                    i += 1
-    f.close()
+    with open(os.path.join(folder, "kilt.jsonl"), "w+") as f:
+        i = 1
+        for rank in trange(num_threads):
+            filename = os.path.join(folder, f"kilt_{rank}.jsonl")
+            print(f"reading {filename}", flush=True)
+            with open(filename, "r") as fin:
+                lines = fin.readlines()
+                for line in tqdm(lines):
+                    elements = line.split("\t")
+                    if len(elements) != 2:
+                        print(f"ERROR: len(elements)!=2 -> {len(elements)}", flush=True)
+                    else:
+                        f.write(f"{i}\t{elements[1].strip()}\n")
+                        i += 1
     print("done")
 
 
@@ -252,7 +240,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.threads == None:
+    if args.threads is None:
         args.threads = int(multiprocessing.cpu_count())
 
     # step 1

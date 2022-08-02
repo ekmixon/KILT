@@ -30,7 +30,7 @@ class TriviaQADataset(Dataset):
 
         all_data = all_data['Data']
         n = len(all_data)
-        print("{} examples in the dataset".format(n))
+        print(f"{n} examples in the dataset")
         return utils.chunk_it(all_data, num_chunks)
 
     def process_chunk(self, chunk, ks, chunk_id=-1):
@@ -63,22 +63,10 @@ class TriviaQADataset(Dataset):
             dataset_id = datapoint["QuestionId"]
 
             # group by question,
-            for answer_index, answer in enumerate(answers):
+            for answer in answers:
                 for title in wiki_titles:
-                    page = ks.get_pages_by_title(title)
-                    if not page:
-                        missing_pages += 1 # metric will be inflated since its on each unfetchable page
-                    else:
+                    if page := ks.get_pages_by_title(title):
                         page = page[0]
-                        kilt_record = {
-                            # original data point id if available otherwise unique id
-                            "id": dataset_id,
-                            # question / claim / sentence
-                            # dialogue history goes here
-                            "input": question,
-                        }
-
-                        local_sem = 0.0
                         local_sfm = 0.0
 
                         answer_span = answer
@@ -116,17 +104,24 @@ class TriviaQADataset(Dataset):
 
 
                         if bleu == 1:
+                            local_sem = 0.0
                             local_sem += 1
                         elif bleu < 1 and bleu >= 0:
                             local_sfm += 1
                         else:
-                            print("ERROR: invalid bleu: {}".format(bleu))
+                            print(f"ERROR: invalid bleu: {bleu}")
                             sys.exit(-1)
 
-                        # update kilt data
-                        kilt_record["output"] = kilt_record_output
+                        kilt_record = {
+                            "id": dataset_id,
+                            "input": question,
+                            "output": kilt_record_output,
+                        }
+
                         kilt_data.append(kilt_record)
 
+                    else:
+                        missing_pages += 1 # metric will be inflated since its on each unfetchable page
         metadata = [missing_pages]
         return kilt_data, metadata
 
@@ -148,6 +143,5 @@ class TriviaQADataset(Dataset):
         )
         print(msg)
 
-        f = open(self.log_file, "w+")
-        f.write(msg)
-        f.close()
+        with open(self.log_file, "w+") as f:
+            f.write(msg)

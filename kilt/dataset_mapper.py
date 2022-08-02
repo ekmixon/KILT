@@ -20,7 +20,7 @@ def run_thread(args):
 
 
 def map_dataset(dataset):
-    print("Processing {} dataset.".format(dataset.name))
+    print(f"Processing {dataset.name} dataset.")
     ks = KnowledgeSource()
 
     num_threads = (

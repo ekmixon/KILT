@@ -23,11 +23,7 @@ def _get_predictions_thread(arguments):
     ranker = arguments["ranker"]
     logger = arguments["logger"]
 
-    if id == 0:
-        iter_ = tqdm(queries_data)
-    else:
-        iter_ = queries_data
-
+    iter_ = tqdm(queries_data) if id == 0 else queries_data
     result_doc_ids = []
     result_doc_scores = []
     result_query_id = []
@@ -48,7 +44,7 @@ def _get_predictions_thread(arguments):
             doc_ids, doc_scores = ranker.closest_docs(query, topk)
         except RuntimeError as e:
             if logger:
-                logger.warning("RuntimeError: {}".format(e))
+                logger.warning(f"RuntimeError: {e}")
 
         result_doc_ids.append(doc_ids)
         result_doc_scores.append(doc_scores)
@@ -63,14 +59,13 @@ class DrQA(Retriever):
         self.num_threads = min(num_threads, int(multiprocessing.cpu_count()))
 
         # initialize a ranker per thread
-        self.arguments = []
-        for id in tqdm(range(self.num_threads)):
-            self.arguments.append(
-                {
-                    "id": id,
-                    "ranker": retriever.get_class("tfidf")(tfidf_path=retriever_model),
-                }
-            )
+        self.arguments = [
+            {
+                "id": id,
+                "ranker": retriever.get_class("tfidf")(tfidf_path=retriever_model),
+            }
+            for id in tqdm(range(self.num_threads))
+        ]
 
     def feed_data(self, queries_data, logger=None):
 
@@ -89,9 +84,9 @@ class DrQA(Retriever):
         for x in results:
             i, s, q = x
             for query_id, doc_ids in zip(q, i):
-                provenance[query_id] = []
-                for d_id in doc_ids:
-                    provenance[query_id].append({"wikipedia_id": str(d_id).strip()})
+                provenance[query_id] = [
+                    {"wikipedia_id": str(d_id).strip()} for d_id in doc_ids
+                ]
 
         pool.terminate()
         pool.join()

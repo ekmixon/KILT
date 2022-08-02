@@ -38,21 +38,19 @@ class BaseTransformer(pl.LightningModule):
 
         super().__init__()
         self.hparams = hparams
-        cache_dir = self.hparams.cache_dir if self.hparams.cache_dir else None
+        cache_dir = self.hparams.cache_dir or None
         self.config = AutoConfig.from_pretrained(
-            self.hparams.config_name
-            if self.hparams.config_name
-            else self.hparams.model_name_or_path,
+            self.hparams.config_name or self.hparams.model_name_or_path,
             **({"num_labels": num_labels} if num_labels is not None else {}),
             cache_dir=cache_dir,
-            **config_kwargs,
+            **config_kwargs
         )
+
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.hparams.tokenizer_name
-            if self.hparams.tokenizer_name
-            else self.hparams.model_name_or_path,
+            self.hparams.tokenizer_name or self.hparams.model_name_or_path,
             cache_dir=cache_dir,
         )
+
         self.model = AutoModelWithLMHead.from_pretrained(
             self.hparams.model_name_or_path,
             config=self.config,
@@ -72,7 +70,7 @@ class BaseTransformer(pl.LightningModule):
                 params=[
                     p
                     for n, p in model.named_parameters()
-                    if not any(nd in n for nd in no_decay)
+                    if all(nd not in n for nd in no_decay)
                 ],
                 weight_decay=self.hparams.weight_decay,
             ),
@@ -85,6 +83,7 @@ class BaseTransformer(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
+
         optimizer = AdamW(
             optimizer_grouped_parameters,
             lr=self.hparams.learning_rate,
@@ -105,11 +104,10 @@ class BaseTransformer(pl.LightningModule):
 
     def get_tqdm_dict(self):
         avg_loss = getattr(self.trainer, "avg_loss", 0.0)
-        tqdm_dict = {
+        return {
             "loss": "{:.3f}".format(avg_loss),
             "lr": self.lr_scheduler.get_last_lr()[-1],
         }
-        return tqdm_dict
 
     def test_step(self, batch, batch_nb):
         return self.validation_step(batch, batch_nb)
@@ -143,11 +141,7 @@ class BaseTransformer(pl.LightningModule):
     def _feature_file(self, mode):
         return os.path.join(
             self.hparams.data_dir,
-            "cached_{}_{}_{}".format(
-                mode,
-                list(filter(None, self.hparams.model_name_or_path.split("/"))).pop(),
-                str(self.hparams.max_seq_length),
-            ),
+            f'cached_{mode}_{list(filter(None, self.hparams.model_name_or_path.split("/"))).pop()}_{str(self.hparams.max_seq_length)}',
         )
 
     @staticmethod
@@ -217,7 +211,7 @@ class LoggingCallback(pl.Callback):
             # Log results
             for key in sorted(metrics):
                 if key not in ["log", "progress_bar"]:
-                    logger.info("{} = {}\n".format(key, str(metrics[key])))
+                    logger.info(f"{key} = {str(metrics[key])}\n")
 
     def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         logger.info("***** Test results *****")
@@ -232,8 +226,8 @@ class LoggingCallback(pl.Callback):
             with open(output_test_results_file, "w") as writer:
                 for key in sorted(metrics):
                     if key not in ["log", "progress_bar"]:
-                        logger.info("{} = {}\n".format(key, str(metrics[key])))
-                        writer.write("{} = {}\n".format(key, str(metrics[key])))
+                        logger.info(f"{key} = {str(metrics[key])}\n")
+                        writer.write(f"{key} = {str(metrics[key])}\n")
 
 
 def add_generic_args(parser):
@@ -294,10 +288,9 @@ def generic_train(model: BaseTransformer, args: argparse.Namespace):
         and args.do_train
     ):
         raise ValueError(
-            "Output directory ({}) already exists and is not empty.".format(
-                args.output_dir
-            )
+            f"Output directory ({args.output_dir}) already exists and is not empty."
         )
+
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         filepath=args.output_dir,

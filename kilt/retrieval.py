@@ -32,18 +32,16 @@ def run(
 ):
 
     for task_family, datasets in test_config_json.items():
-        logger.info("TASK: {}".format(task_family))
+        logger.info(f"TASK: {task_family}")
 
         for dataset_name, dataset_file in datasets.items():
-            logger.info("DATASET: {}".format(dataset_name))
+            logger.info(f"DATASET: {dataset_name}")
 
             if dataset_file:
 
                 output_file = generate_output_file(output_folder, dataset_file)
                 if path.exists(output_file):
-                    logger.info(
-                        "Skip output file {} that already exists.".format(output_file)
-                    )
+                    logger.info(f"Skip output file {output_file} that already exists.")
                     continue
 
                 raw_data = utils.load_data(dataset_file)
@@ -71,14 +69,13 @@ def run(
 
                 if len(provenance) != len(query_data):
                     logger.warning(
-                        "different numbers of queries: {} and predicions: {}".format(
-                            len(query_data), len(provenance)
-                        )
+                        f"different numbers of queries: {len(query_data)} and predicions: {len(provenance)}"
                     )
+
 
                 # write prediction files
                 if provenance:
-                    logger.info("writing prediction file to {}".format(output_file))
+                    logger.info(f"writing prediction file to {output_file}")
 
                     predictions = []
                     for query_id in provenance.keys():
@@ -86,9 +83,12 @@ def run(
                         new_output = [{"provenance": provenance[query_id]}]
                         # append the answers
                         if "output" in element:
-                            for o in element["output"]:
-                                if "answer" in o:
-                                    new_output.append({"answer": o["answer"]})
+                            new_output.extend(
+                                {"answer": o["answer"]}
+                                for o in element["output"]
+                                if "answer" in o
+                            )
+
                         element["output"] = new_output
                         predictions.append(element)
 

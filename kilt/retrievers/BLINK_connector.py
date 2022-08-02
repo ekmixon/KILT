@@ -129,6 +129,7 @@ class BLINK(Retriever):
 
         provenance = {}
 
+        local_doc_id = []
         for id, results in id_2_results.items():
 
             element = []
@@ -143,13 +144,10 @@ class BLINK(Retriever):
                     sorted_titles.append(x)
                     sorted_scores.append(y)
 
-            local_doc_id = []
             for e_title, score in zip(sorted_titles, sorted_scores):
 
                 if e_title not in self.Wikipedia_title2id:
-                    print(
-                        "WARNING: title: {} not recognized".format(e_title), flush=True
-                    )
+                    print(f"WARNING: title: {e_title} not recognized", flush=True)
                 else:
 
                     """

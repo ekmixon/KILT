@@ -30,23 +30,23 @@ def encode_seq(tokenizer, seqs, max_length, out_dir, dataset, side='source', typ
     examples = []
     lengths = []
 
-    output_file = os.path.join(out_dir, dataset + "-" + type_path + "-" + side + ".encoded")
+    output_file = os.path.join(out_dir, f"{dataset}-{type_path}-{side}.encoded")
     with open(output_file, "w") as f_out:
         texts = []
         for text in seqs:
 
             if dataset_task_map[dataset] == 'Entity Linking' and side == 'source':
-                length = int(int(dataset_config[dataset]['source_length']) / 2)
+                length = int(dataset_config[dataset]['source_length']) // 2
                 mention_start = text.find('[START_ENT]')
                 mention_end = text.find('[END_ENT]')
-                left = text[0:mention_start]
+                left = text[:mention_start]
                 right = text[mention_end + len('[END_ENT]'):]
 
                 left_ids = tokenizer.encode(left)
                 right_ids = tokenizer.encode(right)
-                left = tokenizer.decode(left_ids[max(0, len(left_ids) - length):len(left_ids)])
-                right = tokenizer.decode(right_ids[0:min(len(right_ids), length)])
-                text = left + ' ' + text[mention_start:mention_end] + '[END_ENT] ' + right
+                left = tokenizer.decode(left_ids[max(0, len(left_ids) - length):])
+                right = tokenizer.decode(right_ids[:min(len(right_ids), length)])
+                text = f'{left} {text[mention_start:mention_end]}[END_ENT] {right}'
 
             if dataset == 'wow' and side == 'source':
                 text = text.replace('\n', '[SEP]')
@@ -57,8 +57,7 @@ def encode_seq(tokenizer, seqs, max_length, out_dir, dataset, side='source', typ
                 if text == "SUPPORTS":
                     text = "<SUPPORTS>"
 
-            txt = text if side == 'target' else \
-                dataset_task_map[dataset] + ": " + text
+            txt = text if side == 'target' else f"{dataset_task_map[dataset]}: {text}"
             txt = txt + tokenizer.eos_token
             texts.append(txt)
 
@@ -127,7 +126,10 @@ class KiltDataset(torch.utils.data.Dataset):
 
 
 def kilt_to_seq2seq(data_dir, dataset, type_path):
-    data_file = pathlib.Path(os.path.join(data_dir, dataset + '-' + type_path + "-kilt.jsonl"))
+    data_file = pathlib.Path(
+        os.path.join(data_dir, f'{dataset}-{type_path}-kilt.jsonl')
+    )
+
     sources = []
     targets = []
     ids = []
@@ -137,7 +139,7 @@ def kilt_to_seq2seq(data_dir, dataset, type_path):
 
     with open(data_file, "r") as f:
 
-        for line in f.readlines():
+        for line in f:
             qa = json.loads(line)
             q_id = qa['id']
             question = qa['input']
@@ -167,7 +169,7 @@ def kilt_to_seq2seq(data_dir, dataset, type_path):
 
 
 def seq2seq_to_kilt(ids, sources, targets, output_dir, dataset, type_path):
-    data_file = os.path.join(output_dir, dataset + '-' + type_path + "-kilt.jsonl")
+    data_file = os.path.join(output_dir, f'{dataset}-{type_path}-kilt.jsonl')
 
     with open(data_file, "a+") as output_file:
         data = []
@@ -201,7 +203,7 @@ def nq_jsonl_to_tsv(data_dir, type_path):
     sources = []
     targets = []
     id_targets = {}
-    in_fname = data_dir + '/' + type_path + '.jsonl.gz'
+    in_fname = f'{data_dir}/{type_path}.jsonl.gz'
 
     for line in gzip.open(in_fname, "rb"):
         ex = json.loads(line)
@@ -231,5 +233,4 @@ def nq_jsonl_to_tsv(data_dir, type_path):
     return ids, sources, targets, id_targets
 
 
-if __name__ == "__main__":
-    pass
+pass

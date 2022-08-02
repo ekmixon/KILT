@@ -74,7 +74,7 @@ class FactVerificationDataset(Dataset):
                         page_to_evidence_sents[page_id][sent_id] = None
 
         for idx in range(1, 110):
-            filename = self.evidence_directory_path + f"/wiki-{idx:03}.jsonl"
+            filename = f"{self.evidence_directory_path}/wiki-{idx:03}.jsonl"
             print(f"processing filename {filename}")
             with open(filename, "r") as fin:
                 for line in fin:
@@ -100,7 +100,7 @@ class FactVerificationDataset(Dataset):
                         # append the normalized text to the previous
                         # sentence.
                         if line_fields[0] == "":
-                            sentences[-1]["text"] += " " + sent_text
+                            sentences[-1]["text"] += f" {sent_text}"
                         else:
                             sentences.append(
                                 {
@@ -128,7 +128,7 @@ class FactVerificationDataset(Dataset):
                 )
 
         n = len(data)
-        print("{} examples in the dataset".format(n))
+        print(f"{n} examples in the dataset")
         return utils.chunk_it(data, num_chunks)
 
     def process_chunk(self, chunk, ks, chunk_id=-1):
@@ -156,16 +156,13 @@ class FactVerificationDataset(Dataset):
             sent_id = datapoint["sent_id"]
             text = datapoint["text"]
 
-            if not text or text == None or len(text) == 0:
+            if not text or text is None or len(text) == 0:
                 continue
 
             url = "https://en.wikipedia.org/wiki/" + self._normalize(
                 datapoint["page_id"]
             )
-            page = ks.get_page_from_url(url)
-            if not page:
-                missing_pages += 1
-            else:
+            if page := ks.get_page_from_url(url):
                 # get and validate evidence sentence
 
                 local_sem = 0.0
@@ -178,15 +175,12 @@ class FactVerificationDataset(Dataset):
                     "evidence_text": text,
                 }
 
-                kilt_record_output = []
-
                 paragraph_id, start_character, end_character, bleu = utils.match_answer(
                     text, page, nlp=self.nlp, debug=False
                 )
 
-                kilt_record_output.append(
+                kilt_record_output = [
                     {
-                        # answer in textual form
                         "answer": text,
                         "provenance": [
                             # list of relevant WikipediaPages / Spans as provenance for the answer from the ks
@@ -209,14 +203,14 @@ class FactVerificationDataset(Dataset):
                             }
                         ],
                     }
-                )
+                ]
 
                 if bleu == 1:
                     local_sem += 1
                 elif bleu < 1 and bleu >= 0:
                     local_sfm += 1
                 else:
-                    print("ERROR: invalid bleu: {}".format(bleu))
+                    print(f"ERROR: invalid bleu: {bleu}")
                     sys.exit(-1)
 
                 # update kilt data
@@ -228,6 +222,8 @@ class FactVerificationDataset(Dataset):
 
                 metadata = [missing_pages, exact_match, fuzzy_match]
 
+            else:
+                missing_pages += 1
         return kilt_data, metadata
 
     def postprocess_metadata(self, metadata):
@@ -248,6 +244,5 @@ class FactVerificationDataset(Dataset):
         )
         print(msg)
 
-        f = open(self.log_file, "w+")
-        f.write(msg)
-        f.close()
+        with open(self.log_file, "w+") as f:
+            f.write(msg)

@@ -37,30 +37,27 @@ def validate_datapoint(datapoint, logger):
     if not isinstance(datapoint["input"], str):
         if logger:
             logger.warning(
-                "[{}] input is not a string {}".format(
-                    datapoint["id"], datapoint["input"]
-                )
+                f'[{datapoint["id"]}] input is not a string {datapoint["input"]}'
             )
+
         return False
 
     # output is not empty
     if "output" in datapoint:
         if len(datapoint["output"]) == 0:
             if logger:
-                logger.warning("[{}] empty output".format(datapoint["id"]))
+                logger.warning(f'[{datapoint["id"]}] empty output')
             return False
 
         for output in datapoint["output"]:
             # answer is a string
-            if "answer" in output:
-                if not isinstance(output["answer"], str):
-                    if logger:
-                        logger.warning(
-                            "[{}] answer is not a string {}".format(
-                                datapoint["id"], output["answer"]
-                            )
-                        )
-                    return False
+            if "answer" in output and not isinstance(output["answer"], str):
+                if logger:
+                    logger.warning(
+                        f'[{datapoint["id"]}] answer is not a string {output["answer"]}'
+                    )
+
+                return False
 
             # provenance is not empty
             # if len(output["provenance"]) == 0:
@@ -76,20 +73,18 @@ def validate_datapoint(datapoint, logger):
                     ):
                         if logger:
                             logger.warning(
-                                "[{}] wikipedia_id is not a string {}".format(
-                                    datapoint["id"], provenance["wikipedia_id"]
-                                )
+                                f'[{datapoint["id"]}] wikipedia_id is not a string {provenance["wikipedia_id"]}'
                             )
+
                         return False
 
                     # title is provided
                     if not isinstance(provenance["title"], str):
                         if logger:
                             logger.warning(
-                                "[{}] title is not a string {}".format(
-                                    datapoint["id"], provenance["title"]
-                                )
+                                f'[{datapoint["id"]}] title is not a string {provenance["title"]}'
                             )
+
                         return False
 
     return True
@@ -99,14 +94,13 @@ def load_data(filename):
     data = []
     with open(filename, "r") as fin:
         lines = fin.readlines()
-        for line in lines:
-            data.append(json.loads(line))
+        data.extend(json.loads(line) for line in lines)
     return data
 
 
 def store_data(filename, data):
     with open(filename, "w+") as outfile:
-        for idx, element in enumerate(data):
+        for element in data:
             # print(round(idx * 100 / len(data), 2), "%", end="\r")
             # sys.stdout.flush()
             json.dump(element, outfile)
@@ -126,10 +120,9 @@ def get_bleu(candidate_tokens, gold_tokens):
         # lower order ngrams
         weights = [1.0 / len(gold_tokens) for _ in range(len(gold_tokens))]
 
-    BLEUscore = nltk.translate.bleu_score.sentence_bleu(
+    return nltk.translate.bleu_score.sentence_bleu(
         [candidate_tokens], gold_tokens, weights=weights
     )
-    return BLEUscore
 
 
 # split a list in num parts evenly
@@ -153,9 +146,9 @@ def init_logging(base_logdir, modelname, logger=None):
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-    log_directory = "{}/{}/".format(base_logdir, modelname)
+    log_directory = f"{base_logdir}/{modelname}/"
 
-    if logger == None:
+    if logger is None:
         logger = logging.getLogger("KILT")
 
         logger.setLevel(logging.DEBUG)
@@ -174,21 +167,21 @@ def init_logging(base_logdir, modelname, logger=None):
     os.makedirs(log_directory, exist_ok=True)
 
     # file handler
-    fh = logging.FileHandler(str(log_directory) + "/info.log")
+    fh = logging.FileHandler(f"{log_directory}/info.log")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
 
     logger.addHandler(fh)
 
     logger.propagate = False
-    logger.info("logging in {}".format(log_directory))
+    logger.info(f"logging in {log_directory}")
     return logger
 
 
 def create_logdir_with_timestamp(base_logdir):
     timestr = time.strftime("%Y%m%d_%H%M%S")
     # create new directory
-    log_directory = "{}/{}_{}/".format(base_logdir, timestr, random.randint(0, 1000))
+    log_directory = f"{base_logdir}/{timestr}_{random.randint(0, 1000)}/"
     os.makedirs(log_directory)
     return log_directory
 

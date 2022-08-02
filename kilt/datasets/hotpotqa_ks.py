@@ -72,7 +72,7 @@ def load_ks(ks_directory, verbose=False):
             if os.path.isfile(os.path.join(directory, f))
         ]
         for filetto in onlyfiles:
-            filename = "{}/{}".format(directory, filetto)
+            filename = f"{directory}/{filetto}"
             filenames.append(filename)
 
     arguments = [
@@ -83,7 +83,7 @@ def load_ks(ks_directory, verbose=False):
     results = pool.map(run_thread, arguments)
     output_dict = {}
     for x in results:
-        output_dict.update(x)
+        output_dict |= x
     pool.terminate()
     pool.join()
 

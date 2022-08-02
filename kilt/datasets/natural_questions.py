@@ -31,7 +31,7 @@ class NaturalQuestionsDataset(Dataset):
                 all_data.append(data)
 
         n = len(all_data)
-        print("{} examples in the dataset".format(n))
+        print(f"{n} examples in the dataset")
         return utils.chunk_it(all_data, num_chunks)
 
     def process_chunk(self, chunk, ks, chunk_id=-1):
@@ -63,12 +63,7 @@ class NaturalQuestionsDataset(Dataset):
             sys.stdout.flush()
 
             url = datapoint["document_url"]
-            page = ks.get_page_from_url(url)
-
-            if not page:
-                print("ERROR, not page!")
-                missing_pages += 1
-            else:
+            if page := ks.get_page_from_url(url):
                 # get and validate annotations
                 annotations = datapoint["annotations"]
 
@@ -140,7 +135,7 @@ class NaturalQuestionsDataset(Dataset):
                             elif bleu < 1 and bleu >= 0:
                                 local_sfm += 1
                             else:
-                                print("ERROR: invalid bleu: {}".format(bleu))
+                                print(f"ERROR: invalid bleu: {bleu}")
                                 sys.exit(-1)
 
                     if "long_answer" in annotation:
@@ -197,18 +192,16 @@ class NaturalQuestionsDataset(Dataset):
                         elif bleu < 1 and bleu >= 0:
                             local_sfm += 1
                         else:
-                            print("ERROR: invalid bleu: {}".format(bleu))
+                            print(f"ERROR: invalid bleu: {bleu}")
                             sys.exit(-1)
 
                 # update kilt data
                 kilt_record["output"] = kilt_record_output
                 kilt_data.append(kilt_record)
 
-                # average by answers per single question
-                # if len(short_answers) > 0:
-                #     short_exact_match += local_sem / len(short_answers)
-                #     short_fuzzy_match += local_sfm / len(short_answers)
-
+            else:
+                print("ERROR, not page!")
+                missing_pages += 1
         metadata = [missing_pages, short_exact_match, short_fuzzy_match]
         return kilt_data, metadata
 
@@ -230,6 +223,5 @@ class NaturalQuestionsDataset(Dataset):
         )
         print(msg)
 
-        f = open(self.log_file, "w+")
-        f.write(msg)
-        f.close()
+        with open(self.log_file, "w+") as f:
+            f.write(msg)

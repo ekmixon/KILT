@@ -14,13 +14,9 @@ def convert_kilt(inputpath, outputpath):
     data = []
     inputdata = open(inputpath, "r")
     for example in tqdm(inputdata):
-        d = {}
         ex = json.loads(example)
-        d["question"] = ex["input"]
-        answers = set()
-        for a in ex["output"]:
-            if "answer" in a:
-                answers.add(a["answer"])
+        d = {"question": ex["input"]}
+        answers = {a["answer"] for a in ex["output"] if "answer" in a}
         d["answers"] = list(answers)
         d["id"] = ex["id"]
         passages = []

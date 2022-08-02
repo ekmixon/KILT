@@ -15,7 +15,7 @@ from kilt.knowledge_source import KnowledgeSource
 
 def write_output(filename, data):
     with open(filename, "w+") as outfile:
-        for idx, element in enumerate(data):
+        for element in data:
             # print(round(idx * 100 / len(data), 2), "%", end="\r")
             # sys.stdout.flush()
             json.dump(element, outfile)
@@ -125,8 +125,7 @@ with open(args.test_entities_filename, "r") as fin:
         if kb_idx in labels:
             labels[kb_idx] = True
             title = title.replace("&amp;", "&")
-            page = ks.get_page_by_title(title)
-            if page:
+            if page := ks.get_page_by_title(title):
                 kb2id[kb_idx] = page["wikipedia_id"]
             else:
                 missing_pages += 1
@@ -194,11 +193,11 @@ for idx, filename in enumerate(
             else:
                 missing += 1
 
-    if idx == 1:
-        print("missing {}/{} points in train".format(missing, len(lines)))
-        write_output(args.out_train, kilt_records)
-    elif idx == 0:
-        print("missing {}/{} points in test".format(missing, len(lines)))
+    if idx == 0:
+        print(f"missing {missing}/{len(lines)} points in test")
         write_output(args.out_test, kilt_records)
+    elif idx == 1:
+        print(f"missing {missing}/{len(lines)} points in train")
+        write_output(args.out_train, kilt_records)
     else:
         print("ERROR")

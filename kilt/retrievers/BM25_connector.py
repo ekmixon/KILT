@@ -71,23 +71,20 @@ class BM25(Retriever):
 
         if Xms and Xmx:
             # to solve Insufficient memory for the Java Runtime Environment
-            jnius_config.add_options(
-                "-Xms{}".format(Xms), "-Xmx{}".format(Xmx), "-XX:-UseGCOverheadLimit"
-            )
+            jnius_config.add_options(f"-Xms{Xms}", f"-Xmx{Xmx}", "-XX:-UseGCOverheadLimit")
             print("Configured options:", jnius_config.get_options())
 
         self.num_threads = min(num_threads, int(multiprocessing.cpu_count()))
 
         # initialize a ranker per thread
-        self.arguments = []
-        for id in tqdm(range(self.num_threads)):
-            self.arguments.append(
-                {
-                    "id": id,
-                    "index": index,
-                    "k": k,
-                }
-            )
+        self.arguments = [
+            {
+                "id": id,
+                "index": index,
+                "k": k,
+            }
+            for id in tqdm(range(self.num_threads))
+        ]
 
     def feed_data(self, queries_data, logger=None):
 
@@ -102,7 +99,7 @@ class BM25(Retriever):
 
         provenance = {}
         for x in results:
-            provenance.update(x)
+            provenance |= x
         pool.terminate()
         pool.join()
 

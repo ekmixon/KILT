@@ -32,7 +32,7 @@ def main(args):
     logger = None
 
     logger = utils.init_logging(log_directory, args.model_name, logger)
-    logger.info("loading {} ...".format(args.model_name))
+    logger.info(f"loading {args.model_name} ...")
 
     if args.model_name == "drqa":
         # DrQA tf-idf

@@ -18,11 +18,13 @@ from kilt import kilt_utils
 
 # utility to get gold answers
 def get_gold_answers(gold):
-    ground_truths = set()
-    for item in gold["output"]:
-        if "answer" in item and item["answer"] and len(item["answer"].strip()) > 0:
-            ground_truths.add(item["answer"].strip())
-    return ground_truths
+    return {
+        item["answer"].strip()
+        for item in gold["output"]
+        if "answer" in item
+        and item["answer"]
+        and len(item["answer"].strip()) > 0
+    }
 
 
 # utility to get max
@@ -64,8 +66,7 @@ def _f1_score(prediction, ground_truth):
         return 0
     precision = 1.0 * num_same / len(prediction_tokens)
     recall = 1.0 * num_same / len(ground_truth_tokens)
-    f1 = (2 * precision * recall) / (precision + recall)
-    return f1
+    return (2 * precision * recall) / (precision + recall)
 
 
 # EM score definition
@@ -88,7 +89,8 @@ def _calculate_metrics(gold_records, guess_records):
 
     assert len(gold_records) == len(
         guess_records
-    ), "different size gold: {} guess: {}".format(len(gold_records), len(guess_records))
+    ), f"different size gold: {len(gold_records)} guess: {len(guess_records)}"
+
 
     total_count = 0
 
@@ -123,7 +125,7 @@ def _calculate_metrics(gold_records, guess_records):
         ), f"you should provide exactly one valid answer for {guess_item['id']}"
         guess_answer = str(guess_item["output"][0]["answer"]).strip()
 
-        if len(guess_answer) == 0:
+        if not guess_answer:
             # empty answer
             continue
 
@@ -198,10 +200,9 @@ def validate_input(gold_records, guess_records):
 
     if len(gold_records) != len(guess_records):
         print(
-            "WARNING: DIFFERENT SIZE gold: {} guess: {}".format(
-                len(gold_records), len(guess_records)
-            )
+            f"WARNING: DIFFERENT SIZE gold: {len(gold_records)} guess: {len(guess_records)}"
         )
+
 
     # align order
     gold_ids = []
@@ -221,7 +222,7 @@ def validate_input(gold_records, guess_records):
         if id in id2guess_record:
             guess_records.append(id2guess_record[id])
         else:
-            raise ValueError("ERROR: no prediction provided for id: {}".format(id))
+            raise ValueError(f"ERROR: no prediction provided for id: {id}")
 
     return gold_records, guess_records
 

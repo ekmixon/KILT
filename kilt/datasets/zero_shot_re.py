@@ -32,12 +32,14 @@ class ZeroShotREDataset(Dataset):
         ks,
         entry_id,
     ):
-        kilt_entry = {}
-        kilt_entry["id"] = entry_id
-        kilt_entry["input"] = question_template.replace("XXX", wikipedia_title).replace(
-            " auther", " author"  # to fix typo in templates
-        )
-        kilt_entry["output"] = []
+        kilt_entry = {
+            "id": entry_id,
+            "input": question_template.replace("XXX", wikipedia_title).replace(
+                " auther", " author"
+            ),
+            "output": [],
+        }
+
         kilt_entry["meta"] = {
             "wikidata_relation": wikidata_relation,
             "question_template": question_template,
@@ -86,7 +88,7 @@ class ZeroShotREDataset(Dataset):
         missing_pages = 0
         negative_samples = 0
         for i, line in enumerate(chunk):
-            print("Processed {} lines for chunk {}".format(i, chunk_id))
+            print(f"Processed {i} lines for chunk {chunk_id}")
             print("Processing:", line)
             fields = line.strip().split("\t")
             # Leave out negative samples (samples where one can't infer the
@@ -94,9 +96,7 @@ class ZeroShotREDataset(Dataset):
             if len(fields) <= 4:
                 negative_samples += 1
                 continue
-            wikidata_relation, question_template, wikipedia_title, sentence = fields[
-                0:4
-            ]
+            wikidata_relation, question_template, wikipedia_title, sentence = fields[:4]
             answer_spans = fields[4:]
             kilt_entry = self.map_datapoint(
                 wikidata_relation,
@@ -120,7 +120,5 @@ class ZeroShotREDataset(Dataset):
             missing_pages += m
             negative_samples += n
         print(
-            "{} samples with missing pages, {} samples with no answer spans.".format(
-                missing_pages, negative_samples
-            )
+            f"{missing_pages} samples with missing pages, {negative_samples} samples with no answer spans."
         )

@@ -25,14 +25,15 @@ members = [
 ]
 base = "data/"
 input_files = [
-    base + "triviaqa-train_id-kilt.jsonl",
-    base + "triviaqa-dev_id-kilt.jsonl",
-    base + "triviaqa-test_id_without_answers-kilt.jsonl",
+    f"{base}triviaqa-train_id-kilt.jsonl",
+    f"{base}triviaqa-dev_id-kilt.jsonl",
+    f"{base}triviaqa-test_id_without_answers-kilt.jsonl",
 ]
+
 output_files = [
-    base + "triviaqa-train-kilt.jsonl",
-    base + "triviaqa-dev-kilt.jsonl",
-    base + "triviaqa-test_without_answers-kilt.jsonl",
+    f"{base}triviaqa-train-kilt.jsonl",
+    f"{base}triviaqa-dev-kilt.jsonl",
+    f"{base}triviaqa-test_without_answers-kilt.jsonl",
 ]
 
 
@@ -94,7 +95,7 @@ for member in members:
     os.remove(filename)
 
 print("5. remove original TriviaQA data")
-os.rmdir(trivia_path + "qa/")
+os.rmdir(f"{trivia_path}qa/")
 os.rmdir(trivia_path)
 
 print("6. update kilt files")

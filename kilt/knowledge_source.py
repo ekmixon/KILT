@@ -19,11 +19,8 @@ def _get_pageid_from_api(title, client=None):
     pageid = None
 
     title_html = title.strip().replace(" ", "%20")
-    url = (
-        "https://en.wikipedia.org/w/api.php?action=query&titles={}&format=json".format(
-            title_html
-        )
-    )
+    url = f"https://en.wikipedia.org/w/api.php?action=query&titles={title_html}&format=json"
+
 
     try:
         # Package the request, send the request and catch the response: r
@@ -60,7 +57,7 @@ def _get_title_from_wikipedia_url(url, client=None):
     except Exception:
         try:
             # try adding https
-            title = _read_url("https://" + url)
+            title = _read_url(f"https://{url}")
         except Exception:
             #  print("Exception: {}".format(e))
             pass
@@ -80,19 +77,16 @@ class KnowledgeSource:
         self.db = self.client[database][collection]
 
     def get_all_pages_cursor(self):
-        cursor = self.db.find({})
-        return cursor
+        return self.db.find({})
 
     def get_num_pages(self):
         return self.db.count()
 
     def get_page_by_id(self, wikipedia_id):
-        page = self.db.find_one({"_id": str(wikipedia_id)})
-        return page
+        return self.db.find_one({"_id": str(wikipedia_id)})
 
     def get_page_by_title(self, wikipedia_title, attempt=0):
-        page = self.db.find_one({"wikipedia_title": str(wikipedia_title)})
-        return page
+        return self.db.find_one({"wikipedia_title": str(wikipedia_title)})
 
     def get_page_from_url(self, url):
         page = None
@@ -105,16 +99,14 @@ class KnowledgeSource:
             page = self.get_page_by_title(title)
 
         # 2. try another way to look for title in the url
-        if page == None:
+        if page is None:
             title = url.split("/")[-1].replace("_", " ")
             page = self.get_page_by_title(title)
 
         # 3. try to retrieve the current wikipedia_id from the url
-        if page == None:
-            title = _get_title_from_wikipedia_url(url, client=self.client)
-            if title:
-                pageid = _get_pageid_from_api(title, client=self.client)
-                if pageid:
+        if page is None:
+            if title := _get_title_from_wikipedia_url(url, client=self.client):
+                if pageid := _get_pageid_from_api(title, client=self.client):
                     page = self.get_page_by_id(pageid)
 
         return page

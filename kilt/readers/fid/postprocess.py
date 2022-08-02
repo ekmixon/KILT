@@ -12,11 +12,11 @@ import json
 def convert_to_kilt(inputpath, outputpath, datapath):
     data = []
     with open(datapath, 'r') as fin:
-        for k, example in enumerate(fin):
+        for example in fin:
             example = json.loads(example)
             data.append(example)
     datadict = {ex['id']:ex for ex in data}
-    outfile = open(outputpath, 'w')    
+    outfile = open(outputpath, 'w')
     with open(inputpath, 'r') as f:
         lines = f.readlines()
         for line in lines:

@@ -66,9 +66,7 @@ def calculate_rouge(output_lns, reference_lns, score_path):
 
     result = aggregator.aggregate()
     score_file.write(
-        "ROUGE_1: \n{} \n\n ROUGE_2: \n{} \n\n ROUGE_L: \n{} \n\n".format(
-            result["rouge1"], result["rouge2"], result["rougeL"]
-        )
+        f'ROUGE_1: \n{result["rouge1"]} \n\n ROUGE_2: \n{result["rouge2"]} \n\n ROUGE_L: \n{result["rougeL"]} \n\n'
     )
 
 
